@@ -1,10 +1,10 @@
-use crate::lexer::Lexer;
+use crate::parser::Parser;
 
+mod parser;
 mod lexer;
 
 fn main() {
-    let mut lexer = Lexer::new("33+4*3-5/2");
-    while let Some(token) = lexer.get_next_token() {
-        println!("{:?}", token)
-    }
+    let mut parser = Parser::new("33+4*3-4/2");
+    let result = parser.expr();
+    println!("Result: {}", result);
 }
