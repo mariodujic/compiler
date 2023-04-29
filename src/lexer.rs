@@ -39,6 +39,9 @@ impl Lexer {
                 self.advance();
             }
             Some(Token::Number(num_str.parse().unwrap()))
+        } else if current_char.is_whitespace() {
+            self.advance();
+            self.get_next_token()
         } else {
             match current_char {
                 '+' => {
