@@ -1,8 +1,9 @@
-use crate::lexer::{Lexer, Token};
+use crate::lexer::{Lexer, Token, TokenError};
+use crate::lexer::Token::EOF;
 
 pub struct Parser {
     lexer: Lexer,
-    current_token: Option<Token>,
+    current_token: Result<Token, TokenError>,
 }
 
 impl Parser {
@@ -16,56 +17,61 @@ impl Parser {
     }
 
     fn eat(&mut self, token: Token) {
-        if self.current_token == Some(token) {
-            self.current_token = self.lexer.get_next_token();
-        } else {
-            panic!("Unexpected token");
+        match &self.current_token {
+            Ok(t) if *t == token => self.current_token = self.lexer.get_next_token(),
+            _ => panic!("Unsupported token result")
         }
     }
 
-    fn factor(&mut self) -> i32 {
-        match self.current_token {
-            Some(Token::Number(value)) => {
+    fn factor(&mut self) -> Result<i32, TokenError> {
+        match self.current_token.clone() {
+            Ok(Token::Number(value)) => {
                 self.eat(Token::Number(value));
-                value
+                Ok(value)
             }
-            _ => panic!("Invalid token"),
+            Err(error) => Err(error.clone()),
+            _ => panic!("Unable to resolve factor")
         }
     }
 
-    fn term(&mut self) -> i32 {
-        let mut result = self.factor();
-        while let Some(token) = self.current_token {
+    fn term(&mut self) -> Result<i32, TokenError> {
+        let mut result = self.factor()?;
+        while let Ok(token) = self.current_token {
             match token {
                 Token::Multiply => {
                     self.eat(Token::Multiply);
-                    result *= self.factor();
+                    result *= self.factor()?;
                 }
                 Token::Divide => {
                     self.eat(Token::Divide);
-                    result /= self.factor();
+                    result /= self.factor()?;
                 }
                 _ => break,
             }
         }
-        result
+        Ok(result)
     }
 
-    pub fn expr(&mut self) -> i32 {
-        let mut result = self.term();
-        while let Some(token) = self.current_token {
-            match token {
-                Token::Plus => {
-                    self.eat(Token::Plus);
-                    result += self.term();
+    pub fn expr(&mut self) -> Result<i32, TokenError> {
+        let mut result = self.term()?;
+        while self.current_token != Ok(EOF) {
+            match &self.current_token {
+                Ok(res) => {
+                    match res {
+                        Token::Plus => {
+                            self.eat(Token::Plus);
+                            result += self.term()?;
+                        }
+                        Token::Minus => {
+                            self.eat(Token::Minus);
+                            result -= self.term()?;
+                        }
+                        _ => break,
+                    }
                 }
-                Token::Minus => {
-                    self.eat(Token::Minus);
-                    result -= self.term();
-                }
-                _ => break,
+                Err(err) => return Err(err.clone())
             }
         }
-        result
+        Ok(result)
     }
 }

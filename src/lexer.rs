@@ -1,3 +1,8 @@
+use thiserror::Error;
+
+use crate::lexer::Token::EOF;
+use crate::lexer::TokenError::UnsupportedCharacter;
+
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Token {
     Number(i32),
@@ -5,6 +10,13 @@ pub enum Token {
     Minus,
     Multiply,
     Divide,
+    EOF,
+}
+
+#[derive(Debug, Error, PartialEq, Clone)]
+pub enum TokenError {
+    #[error("Unsupported character '{0}' at position {1}")]
+    UnsupportedCharacter(char, usize)
 }
 
 #[derive(Debug)]
@@ -25,9 +37,9 @@ impl Lexer {
         self.position += 1;
     }
 
-    pub(crate) fn get_next_token(&mut self) -> Option<Token> {
+    pub(crate) fn get_next_token(&mut self) -> Result<Token, TokenError> {
         if self.position >= self.input.len() {
-            return None;
+            return Ok(EOF);
         }
 
         let current_char = self.input[self.position];
@@ -38,7 +50,7 @@ impl Lexer {
                 num_str.push(self.input[self.position]);
                 self.advance();
             }
-            Some(Token::Number(num_str.parse().unwrap()))
+            Ok(Token::Number(num_str.parse().unwrap()))
         } else if current_char.is_whitespace() {
             self.advance();
             self.get_next_token()
@@ -46,21 +58,21 @@ impl Lexer {
             match current_char {
                 '+' => {
                     self.advance();
-                    Some(Token::Plus)
+                    Ok(Token::Plus)
                 }
                 '-' => {
                     self.advance();
-                    Some(Token::Minus)
+                    Ok(Token::Minus)
                 }
                 '*' => {
                     self.advance();
-                    Some(Token::Multiply)
+                    Ok(Token::Multiply)
                 }
                 '/' => {
                     self.advance();
-                    Some(Token::Divide)
+                    Ok(Token::Divide)
                 }
-                _ => panic!("Unsupported character {:?}", current_char),
+                _ => Err(UnsupportedCharacter(current_char, self.position))
             }
         }
     }
