@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use crate::lexer::{Lexer, Token, TokenError};
 use crate::lexer::Token::EOF;
 
 pub struct Parser {
     lexer: Lexer,
     current_token: Result<Token, TokenError>,
+    symbol_table: HashMap<Box<str>, i32>,
 }
 
 impl Parser {
@@ -13,6 +16,7 @@ impl Parser {
         Parser {
             lexer,
             current_token,
+            symbol_table: HashMap::new(),
         }
     }
 
@@ -36,13 +40,13 @@ impl Parser {
                 Ok(result)
             }
             Err(error) => Err(error.clone()),
-            _ => panic!("Unable to resolve factor")
+            _ => Ok(0)
         }
     }
 
     fn term(&mut self) -> Result<i32, TokenError> {
         let mut result = self.factor()?;
-        while let Ok(token) = self.current_token {
+        while let Ok(token) = self.current_token.clone() {
             match token {
                 Token::Multiply => {
                     self.eat(Token::Multiply);
@@ -58,8 +62,30 @@ impl Parser {
         Ok(result)
     }
 
-    pub fn expr(&mut self) -> Result<i32, TokenError> {
-        let mut result = self.term()?;
+    fn parse_identifier(&mut self) -> Result<Box<str>, TokenError> {
+        match self.current_token.clone() {
+            Ok(Token::Identifier(value)) => {
+                self.eat(Token::Identifier(value.clone()));
+                Ok(value)
+            }
+            Err(error) => Err(error.clone()),
+            _ => panic!("Unable to parse identifier"),
+        }
+    }
+
+    fn parse_assignment(&mut self) -> Result<(), TokenError> {
+        match self.current_token.clone() {
+            Ok(Token::AssignmentOperator) => {
+                self.eat(Token::AssignmentOperator);
+                Ok(())
+            }
+            Err(error) => Err(error.clone()),
+            _ => panic!("Unable to parse assignment operator"),
+        }
+    }
+
+    fn expr(&mut self) -> Result<i32, TokenError> {
+        let mut result = self.term().unwrap_or(0);
         while self.current_token != Ok(EOF) {
             match &self.current_token {
                 Ok(res) => {
@@ -72,6 +98,12 @@ impl Parser {
                             self.eat(Token::Minus);
                             result -= self.term()?;
                         }
+                        Token::Identifier(_) => {
+                            let identifier = self.parse_identifier()?;
+                            self.parse_assignment()?;
+                            let value = self.expr()?;
+                            self.symbol_table.insert(identifier, value);
+                        }
                         _ => break,
                     }
                 }
@@ -79,5 +111,10 @@ impl Parser {
             }
         }
         Ok(result)
+    }
+
+    pub fn get_symbol_table(&mut self) -> Result<HashMap<Box<str>, i32>, TokenError> {
+        self.expr()?;
+        return Ok(self.symbol_table.clone());
     }
 }
