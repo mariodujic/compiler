@@ -10,6 +10,8 @@ pub enum Token {
     Minus,
     Multiply,
     Divide,
+    OpenParenthesis,
+    CloseParenthesis,
     EOF,
 }
 
@@ -71,6 +73,14 @@ impl Lexer {
                 '/' => {
                     self.advance();
                     Ok(Token::Divide)
+                }
+                '(' => {
+                    self.advance();
+                    Ok(Token::OpenParenthesis)
+                }
+                ')' => {
+                    self.advance();
+                    Ok(Token::CloseParenthesis)
                 }
                 _ => Err(UnsupportedCharacter(current_char, self.position))
             }

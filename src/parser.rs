@@ -29,6 +29,12 @@ impl Parser {
                 self.eat(Token::Number(value));
                 Ok(value)
             }
+            Ok(Token::OpenParenthesis) => {
+                self.eat(Token::OpenParenthesis);
+                let result = self.expr()?;
+                self.eat(Token::CloseParenthesis);
+                Ok(result)
+            }
             Err(error) => Err(error.clone()),
             _ => panic!("Unable to resolve factor")
         }
