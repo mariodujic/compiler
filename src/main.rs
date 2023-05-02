@@ -1,10 +1,15 @@
+use std::fs;
+
 use crate::parser::Parser;
 
 mod parser;
 mod lexer;
 
 fn main() {
-    let mut parser = Parser::new("calculation=(33+4)*3+1");
+
+    let content = fs::read_to_string("sample/main.gz").unwrap();
+
+    let mut parser = Parser::new(content.as_str());
     let result = parser.get_symbol_table();
     match result {
         Ok(result) => println!("Result: {:?}", result),

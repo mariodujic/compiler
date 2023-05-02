@@ -102,7 +102,7 @@ impl Parser {
                             let identifier = self.parse_identifier()?;
                             self.parse_assignment()?;
                             let value = self.expr()?;
-                            self.symbol_table.insert(identifier, value);
+                            self.symbol_table.entry(identifier).or_insert(value);
                         }
                         _ => break,
                     }

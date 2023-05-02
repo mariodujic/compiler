@@ -1,3 +1,4 @@
+use regex::Regex;
 use thiserror::Error;
 
 use crate::lexer::Token::EOF;
@@ -57,7 +58,7 @@ impl Lexer {
             Ok(Token::Number(num_str.parse().unwrap()))
         } else if current_char.is_alphabetic() {
             let mut identifier = String::new();
-            while self.position < self.input.len() && self.input[self.position].is_alphabetic() {
+            while self.position < self.input.len() && is_valid_identifier(self.input[self.position]) {
                 identifier.push(self.input[self.position]);
                 self.advance()
             }
@@ -99,4 +100,8 @@ impl Lexer {
             }
         }
     }
+}
+
+fn is_valid_identifier(text: char) -> bool {
+    Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap().is_match(&text.to_string())
 }
