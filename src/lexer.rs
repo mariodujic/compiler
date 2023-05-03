@@ -1,8 +1,7 @@
 use regex::Regex;
-use thiserror::Error;
 
-use crate::lexer::Token::EOF;
-use crate::lexer::TokenError::UnsupportedCharacter;
+use crate::error::CompilerError;
+use crate::error::CompilerError::UnsupportedCharacter;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
@@ -14,14 +13,10 @@ pub enum Token {
     OpenParenthesis,
     CloseParenthesis,
     Identifier(Box<str>),
+    Immutable,
+    Mutable,
     AssignmentOperator,
     EOF,
-}
-
-#[derive(Debug, Error, PartialEq, Clone)]
-pub enum TokenError {
-    #[error("Unsupported character '{0}' at position {1}")]
-    UnsupportedCharacter(char, usize)
 }
 
 #[derive(Debug)]
@@ -42,9 +37,9 @@ impl Lexer {
         self.position += 1;
     }
 
-    pub(crate) fn get_next_token(&mut self) -> Result<Token, TokenError> {
+    pub(crate) fn get_next_token(&mut self) -> Result<Token, CompilerError> {
         if self.position >= self.input.len() {
-            return Ok(EOF);
+            return Ok(Token::EOF);
         }
 
         let current_char = self.input[self.position];
@@ -62,7 +57,13 @@ impl Lexer {
                 identifier.push(self.input[self.position]);
                 self.advance()
             }
-            Ok(Token::Identifier(identifier.into_boxed_str()))
+            if &identifier == "immut" {
+                Ok(Token::Immutable)
+            } else if &identifier == "mut" {
+                Ok(Token::Mutable)
+            } else {
+                Ok(Token::Identifier(identifier.into_boxed_str()))
+            }
         } else if current_char.is_whitespace() {
             self.advance();
             self.get_next_token()

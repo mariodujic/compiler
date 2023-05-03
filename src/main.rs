@@ -4,9 +4,9 @@ use crate::parser::Parser;
 
 mod parser;
 mod lexer;
+mod error;
 
 fn main() {
-
     let content = fs::read_to_string("sample/main.gz").unwrap();
 
     let mut parser = Parser::new(content.as_str());
