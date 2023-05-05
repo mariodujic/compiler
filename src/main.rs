@@ -5,6 +5,7 @@ use crate::parser::Parser;
 mod parser;
 mod lexer;
 mod error;
+mod symbol;
 
 fn main() {
     let content = fs::read_to_string("sample/main.gz").unwrap();

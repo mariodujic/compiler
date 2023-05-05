@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-
 use crate::error::CompilerError;
 use crate::error::CompilerError::{ImmutableVariable, UndeclaredVariable};
 use crate::lexer::{Lexer, Token};
 use crate::lexer::Token::EOF;
+use crate::symbol::{Symbol, SymbolTable};
 
 pub struct Parser {
     lexer: Lexer,
     current_token: Result<Token, CompilerError>,
-    symbol_table: HashMap<Box<str>, (i32, bool)>,
+    symbol_table: SymbolTable,
 }
 
 impl Parser {
@@ -18,7 +17,7 @@ impl Parser {
         Parser {
             lexer,
             current_token,
-            symbol_table: HashMap::new(),
+            symbol_table: SymbolTable::new(),
         }
     }
 
@@ -120,21 +119,22 @@ impl Parser {
                             let identifier = self.parse_identifier()?;
                             self.parse_assignment()?;
                             let value = self.term()?;
-                            self.symbol_table.entry(identifier).or_insert((value, mutable));
+                            let symbol = Symbol::new(identifier, value, mutable);
+                            self.symbol_table.add(symbol);
                         }
                         Token::Identifier(_) => {
                             let identifier = self.parse_identifier()?;
                             self.parse_assignment()?;
                             let value = self.term()?;
-                            let symbol = self.symbol_table.get_mut(&identifier);
+                            let symbol = self.symbol_table.get(&identifier);
                             if symbol.is_some() {
-                                let mut tup = *symbol.unwrap();
-                                let mutable_variable = tup.1;
+                                let mut symbol = symbol.unwrap().clone();
+                                let mutable_variable = symbol.mutable;
                                 if !mutable_variable {
                                     return Err(ImmutableVariable((*identifier).to_string()));
                                 }
-                                tup.0 = value;
-                                self.symbol_table.insert(identifier, tup);
+                                symbol.value = value;
+                                self.symbol_table.replace_with_same_name(symbol);
                             } else {
                                 return Err(UndeclaredVariable((*identifier).to_string()));
                             }
@@ -148,7 +148,7 @@ impl Parser {
         Ok(result)
     }
 
-    pub fn get_symbol_table(&mut self) -> Result<HashMap<Box<str>, (i32, bool)>, CompilerError> {
+    pub fn get_symbol_table(&mut self) -> Result<SymbolTable, CompilerError> {
         self.expr()?;
         return Ok(self.symbol_table.clone());
     }
