@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::error::CompilerError;
@@ -103,6 +104,10 @@ impl Lexer {
     }
 }
 
+lazy_static! {
+    static ref IDENTIFIER_REGEX: Regex = Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
+}
+
 fn is_valid_identifier(text: char) -> bool {
-    Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap().is_match(&text.to_string())
+    IDENTIFIER_REGEX.is_match(&text.to_string())
 }
