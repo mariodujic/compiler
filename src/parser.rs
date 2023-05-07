@@ -4,13 +4,13 @@ use crate::lexer::{Lexer};
 use crate::symbol::{Symbol, SymbolTable};
 use crate::token::Token;
 
-pub struct Parser {
-    lexer: Lexer,
+pub struct Parser <'a>{
+    lexer: Lexer<'a>,
     current_token: Result<Token, CompilerError>,
     symbol_table: SymbolTable,
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     pub fn new(input: &str) -> Parser {
         let mut lexer = Lexer::new(input);
         let current_token = lexer.get_next_token();

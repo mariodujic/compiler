@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+use std::str::Chars;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -6,42 +8,46 @@ use crate::error::CompilerError::UnsupportedCharacter;
 use crate::token::Token;
 
 #[derive(Debug)]
-pub struct Lexer {
-    input: Vec<char>,
+pub struct Lexer<'a> {
+    input: Peekable<Chars<'a>>,
     position: usize,
 }
 
-impl Lexer {
-    pub(crate) fn new(input: &str) -> Lexer {
+impl<'a> Lexer<'a> {
+    pub(crate) fn new(input: &'a str) -> Lexer<'a> {
         Lexer {
-            input: input.chars().collect(),
+            input: input.chars().peekable(),
             position: 0,
         }
     }
 
-    fn advance(&mut self) {
-        self.position += 1;
-    }
-
     pub(crate) fn get_next_token(&mut self) -> Result<Token, CompilerError> {
-        if self.position >= self.input.len() {
-            return Ok(Token::EOF);
-        }
 
-        let current_char = self.input[self.position];
+        let current_char = match self.input.peek() {
+            Some(c) => *c,
+            None => return Ok(Token::EOF),
+        };
 
         if current_char.is_digit(10) {
             let mut num_str = String::new();
-            while self.position < self.input.len() && self.input[self.position].is_digit(10) {
-                num_str.push(self.input[self.position]);
-                self.advance();
+            while let Some(&c) = self.input.peek() {
+                if c.is_digit(10) {
+                    num_str.push(c);
+                    self.input.next();
+                } else {
+                    break;
+                }
             }
             Ok(Token::Number(num_str.parse().unwrap()))
         } else if current_char.is_alphabetic() {
             let mut identifier = String::new();
-            while self.position < self.input.len() && is_valid_identifier(self.input[self.position]) {
-                identifier.push(self.input[self.position]);
-                self.advance()
+            while let Some(&c) = self.input.peek() {
+                if is_valid_identifier(c) {
+                    identifier.push(c);
+                    self.input.next();
+                } else {
+                    break;
+                }
             }
             if &identifier == "immut" {
                 Ok(Token::Immutable)
@@ -51,36 +57,36 @@ impl Lexer {
                 Ok(Token::Identifier(identifier.into_boxed_str()))
             }
         } else if current_char.is_whitespace() {
-            self.advance();
+            self.input.next();
             self.get_next_token()
         } else {
             match current_char {
                 '+' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::Plus)
                 }
                 '-' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::Minus)
                 }
                 '*' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::Multiply)
                 }
                 '/' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::Divide)
                 }
                 '(' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::OpenParenthesis)
                 }
                 ')' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::CloseParenthesis)
                 }
                 '=' => {
-                    self.advance();
+                    self.input.next();
                     Ok(Token::AssignmentOperator)
                 }
                 _ => Err(UnsupportedCharacter(current_char, self.position))
