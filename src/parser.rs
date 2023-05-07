@@ -1,8 +1,8 @@
 use crate::error::CompilerError;
 use crate::error::CompilerError::{ImmutableVariable, UndeclaredVariable};
-use crate::lexer::{Lexer, Token};
-use crate::lexer::Token::EOF;
+use crate::lexer::{Lexer};
 use crate::symbol::{Symbol, SymbolTable};
+use crate::token::Token;
 
 pub struct Parser {
     lexer: Lexer,
@@ -102,7 +102,7 @@ impl Parser {
 
     fn expr(&mut self) -> Result<i32, CompilerError> {
         let mut result = self.term().unwrap_or(0);
-        while self.current_token != Ok(EOF) {
+        while self.current_token != Ok(Token::EOF) {
             match &self.current_token {
                 Ok(res) => {
                     match res {

@@ -6,6 +6,7 @@ mod parser;
 mod lexer;
 mod error;
 mod symbol;
+mod token;
 
 fn main() {
     let content = fs::read_to_string("sample/main.gz").unwrap();
