@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 use std::str::Chars;
+
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -22,7 +23,6 @@ impl<'a> Lexer<'a> {
     }
 
     pub(crate) fn get_next_token(&mut self) -> Result<Token, CompilerError> {
-
         let current_char = match self.input.peek() {
             Some(c) => *c,
             None => return Ok(Token::EOF),
@@ -72,7 +72,7 @@ impl<'a> Lexer<'a> {
         } else if current_char.is_whitespace() {
             self.input.next();
             self.get_next_token()
-        }  else {
+        } else {
             match current_char {
                 '+' => {
                     self.input.next();

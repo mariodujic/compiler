@@ -1,5 +1,5 @@
 use crate::error::CompilerError;
-use crate::error::CompilerError::{ImmutableVariable, UndeclaredVariable};
+use crate::error::CompilerError::{ImmutableVariable, IncompatibleVariableType, UndeclaredVariable};
 use crate::lexer::Lexer;
 use crate::symbol::{Symbol, SymbolTable, Value};
 use crate::token::Token;
@@ -147,7 +147,7 @@ impl<'a> Parser<'a> {
                                         _ => {}
                                     }
                                 }
-                                _=>{}
+                                _ => {}
                             }
                         }
                         Token::Identifier(_) => {
@@ -161,6 +161,17 @@ impl<'a> Parser<'a> {
                                             let symbol = self.symbol_table.get(&identifier);
                                             if symbol.is_some() {
                                                 let mut symbol = symbol.unwrap().clone();
+
+                                                if let Value::Int(_) = symbol.value {} else {
+                                                    return Err(
+                                                        IncompatibleVariableType(
+                                                            value.to_string(),
+                                                            identifier.to_string(),
+                                                            symbol.value.to_string(),
+                                                        )
+                                                    );
+                                                }
+
                                                 let mutable_variable = symbol.mutable;
                                                 if !mutable_variable {
                                                     return Err(ImmutableVariable((*identifier).to_string()));
@@ -180,6 +191,15 @@ impl<'a> Parser<'a> {
                                                 if !mutable_variable {
                                                     return Err(ImmutableVariable((*identifier).to_string()));
                                                 }
+                                                if let Value::String(_) = symbol.value {} else {
+                                                    return Err(
+                                                        IncompatibleVariableType(
+                                                            value.to_string(),
+                                                            identifier.to_string(),
+                                                            symbol.value.to_string(),
+                                                        )
+                                                    );
+                                                }
                                                 symbol.value = Value::String(value);
                                                 self.symbol_table.replace_with_same_name(symbol);
                                             } else {
@@ -189,7 +209,7 @@ impl<'a> Parser<'a> {
                                         _ => {}
                                     }
                                 }
-                                _=>{}
+                                _ => {}
                             }
                         }
                         _ => break,
