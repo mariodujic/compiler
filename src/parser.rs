@@ -1,10 +1,10 @@
 use crate::error::CompilerError;
 use crate::error::CompilerError::{ImmutableVariable, UndeclaredVariable};
-use crate::lexer::{Lexer};
-use crate::symbol::{Symbol, SymbolTable};
+use crate::lexer::Lexer;
+use crate::symbol::{Symbol, SymbolTable, Value};
 use crate::token::Token;
 
-pub struct Parser <'a>{
+pub struct Parser<'a> {
     lexer: Lexer<'a>,
     current_token: Result<Token, CompilerError>,
     symbol_table: SymbolTable,
@@ -45,7 +45,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn term(&mut self) -> Result<i32, CompilerError> {
+    fn parse_number(&mut self) -> Result<i32, CompilerError> {
         let mut result = self.factor()?;
         while let Ok(token) = self.current_token.clone() {
             match token {
@@ -61,6 +61,19 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(result)
+    }
+
+    fn parse_string_literal(&mut self) -> Result<Box<str>, CompilerError> {
+        while let Ok(token) = self.current_token.clone() {
+            match token {
+                Token::StringLiteral(s) => {
+                    self.eat(Token::StringLiteral(s.clone()));
+                    return Ok(s);
+                }
+                _ => break,
+            }
+        }
+        panic!("Invalid String literal")
     }
 
     fn parse_identifier(&mut self) -> Result<Box<str>, CompilerError> {
@@ -101,42 +114,82 @@ impl<'a> Parser<'a> {
     }
 
     fn expr(&mut self) -> Result<i32, CompilerError> {
-        let mut result = self.term().unwrap_or(0);
+        let mut result = self.parse_number().unwrap_or(0);
         while self.current_token != Ok(Token::EOF) {
             match &self.current_token {
                 Ok(res) => {
                     match res {
                         Token::Plus => {
                             self.eat(Token::Plus);
-                            result += self.term()?;
+                            result += self.parse_number()?;
                         }
                         Token::Minus => {
                             self.eat(Token::Minus);
-                            result -= self.term()?;
+                            result -= self.parse_number()?;
                         }
                         Token::Mutable | Token::Immutable => {
                             let mutable = self.parse_mutability()?;
                             let identifier = self.parse_identifier()?;
                             self.parse_assignment()?;
-                            let value = self.term()?;
-                            let symbol = Symbol::new(identifier, value, mutable);
-                            self.symbol_table.add(symbol);
+                            match &self.current_token {
+                                Ok(res) => {
+                                    match res {
+                                        Token::OpenParenthesis | Token::Number(_) => {
+                                            let value = self.parse_number()?;
+                                            let symbol = Symbol::new(identifier, Value::Int(value), mutable);
+                                            self.symbol_table.add(symbol);
+                                        }
+                                        Token::StringLiteral(_) => {
+                                            let value = self.parse_string_literal()?;
+                                            let symbol = Symbol::new(identifier, Value::String(value), mutable);
+                                            self.symbol_table.add(symbol);
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                _=>{}
+                            }
                         }
                         Token::Identifier(_) => {
                             let identifier = self.parse_identifier()?;
                             self.parse_assignment()?;
-                            let value = self.term()?;
-                            let symbol = self.symbol_table.get(&identifier);
-                            if symbol.is_some() {
-                                let mut symbol = symbol.unwrap().clone();
-                                let mutable_variable = symbol.mutable;
-                                if !mutable_variable {
-                                    return Err(ImmutableVariable((*identifier).to_string()));
+                            match &self.current_token {
+                                Ok(res) => {
+                                    match res {
+                                        Token::OpenParenthesis | Token::Number(_) => {
+                                            let value = self.parse_number()?;
+                                            let symbol = self.symbol_table.get(&identifier);
+                                            if symbol.is_some() {
+                                                let mut symbol = symbol.unwrap().clone();
+                                                let mutable_variable = symbol.mutable;
+                                                if !mutable_variable {
+                                                    return Err(ImmutableVariable((*identifier).to_string()));
+                                                }
+                                                symbol.value = Value::Int(value);
+                                                self.symbol_table.replace_with_same_name(symbol);
+                                            } else {
+                                                return Err(UndeclaredVariable((*identifier).to_string()));
+                                            }
+                                        }
+                                        Token::StringLiteral(_) => {
+                                            let value = self.parse_string_literal()?;
+                                            let symbol = self.symbol_table.get(&identifier);
+                                            if symbol.is_some() {
+                                                let mut symbol = symbol.unwrap().clone();
+                                                let mutable_variable = symbol.mutable;
+                                                if !mutable_variable {
+                                                    return Err(ImmutableVariable((*identifier).to_string()));
+                                                }
+                                                symbol.value = Value::String(value);
+                                                self.symbol_table.replace_with_same_name(symbol);
+                                            } else {
+                                                return Err(UndeclaredVariable((*identifier).to_string()));
+                                            }
+                                        }
+                                        _ => {}
+                                    }
                                 }
-                                symbol.value = value;
-                                self.symbol_table.replace_with_same_name(symbol);
-                            } else {
-                                return Err(UndeclaredVariable((*identifier).to_string()));
+                                _=>{}
                             }
                         }
                         _ => break,

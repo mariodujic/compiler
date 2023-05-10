@@ -56,10 +56,23 @@ impl<'a> Lexer<'a> {
             } else {
                 Ok(Token::Identifier(identifier.into_boxed_str()))
             }
+        } else if current_char == '"' {
+            self.input.next();
+            let mut literal = String::new();
+            while let Some(&c) = self.input.peek() {
+                if c != '"' {
+                    literal.push(c);
+                    self.input.next();
+                } else {
+                    self.input.next();
+                    break;
+                }
+            }
+            Ok(Token::StringLiteral(literal.into_boxed_str()))
         } else if current_char.is_whitespace() {
             self.input.next();
             self.get_next_token()
-        } else {
+        }  else {
             match current_char {
                 '+' => {
                     self.input.next();

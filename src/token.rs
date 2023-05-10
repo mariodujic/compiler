@@ -11,5 +11,6 @@ pub enum Token {
     Immutable,
     Mutable,
     AssignmentOperator,
+    StringLiteral(Box<str>),
     EOF,
 }

@@ -1,3 +1,4 @@
 mut calculation = (33+4)*3+2
-mut hello_world = 22
+mut word = "John Doe"
+word = "Foo"
 calculation = 22

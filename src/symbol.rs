@@ -30,12 +30,18 @@ impl SymbolTable {
 #[derive(Debug, Clone)]
 pub struct Symbol {
     pub name: Box<str>,
-    pub value: i32,
+    pub value: Value,
     pub mutable: bool,
 }
 
 impl Symbol {
-    pub fn new(name: Box<str>, value: i32, mutable: bool) -> Symbol {
+    pub fn new(name: Box<str>, value: Value, mutable: bool) -> Symbol {
         Symbol { name, value, mutable }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Value {
+    Int(i32),
+    String(Box<str>),
 }
